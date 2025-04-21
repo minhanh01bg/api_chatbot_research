@@ -31,7 +31,7 @@ app.add_middleware(
 )
 
 app.mount(f"/alembic", StaticFiles(directory="alembic"), name="alembic")
-app.include_router(score, prefix=configs.ROUTER, tags=['Eduprompt score'])
+app.include_router(chat, prefix=configs.ROUTER, tags=['Chat'])
 app.include_router(auth, prefix=configs.ROUTER, tags=['Auth'])
 
 

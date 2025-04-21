@@ -65,6 +65,9 @@ class Config:
     MONGO_URL = toml_settings['mongo']['MONGO_URL']
 
     GOOGLE_API_KEY = toml_settings['google']['GOOGLE_API_KEY']
+
+    TAVILY_KEY = toml_settings['tavily']['TAVILY_KEY']
+    
     GENMINI_MODEL =toml_settings['google']['GENMINI_MODEL']
 
 configs = Config()

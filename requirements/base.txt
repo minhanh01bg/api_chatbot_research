@@ -1,0 +1,9 @@
+fastapi==0.115.8
+passlib==1.7.4
+python-jose==3.3.0
+python-multipart==0.0.20
+SQLAlchemy==2.0.37
+uvicorn==0.34.0
+numpy
+aiohttp
+toml

@@ -1,0 +1,6 @@
+__pycache__
+app/__pycache__
+# app/alembic/*
+!app/alembic/.gitkeep
+app/app.log
+settings.toml

@@ -7,6 +7,8 @@ from auth import models
 from database import users_collection, tokens_collection
 from auth.routes import auth
 from modules.chat.routes import chat
+from modules.document.routes import document
+from modules.document.utils import initialize_vectorstore
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -17,8 +19,15 @@ warnings.filterwarnings('ignore')
 
 # models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI()
+class AppState:
+    """Application state class to store global variables"""
 
+    def __init__(self):
+        self.vectorstore = None
+
+
+app = FastAPI()
+app.state = AppState()
 
 origins = ["*", ]
 
@@ -33,7 +42,7 @@ app.add_middleware(
 app.mount(f"/alembic", StaticFiles(directory="alembic"), name="alembic")
 app.include_router(chat, prefix=configs.ROUTER, tags=['Chat'])
 app.include_router(auth, prefix=configs.ROUTER, tags=['Auth'])
-
+app.include_router(document, prefix=configs.ROUTER, tags=['Document'])
 
 
 async def create_superuser(username=None, password=None, is_active=True, is_admin=True, user_id=None):
@@ -80,9 +89,9 @@ async def create_superuser(username=None, password=None, is_active=True, is_admi
         print(f"✅ Superuser '{username}' already exists in MongoDB!")
 
 
-
 @app.on_event("startup")
 async def startup_event():
+    # Create superuser
     await create_superuser(
         username=configs.toml_settings['superuser']['username'],
         password=configs.toml_settings['superuser']['password'],
@@ -90,6 +99,10 @@ async def startup_event():
         is_admin=configs.toml_settings['superuser']['is_admin'],
         user_id=configs.toml_settings['superuser']['id']
     )
+
+    # Initialize vectorstore and store in app state
+    app.state.vectorstore = await initialize_vectorstore()
+    print(f"✅ Vectorstore initialized and stored in app state")
 
 
 @app.exception_handler(AppBaseException)

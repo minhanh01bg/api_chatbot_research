@@ -1,10 +1,13 @@
 from langgraph.graph import StateGraph, START, END
 from langchain.schema import Document
-from modules.chat.documents import retriever
+# from modules.chat.documents import retriever
 from modules.chat.chatbot import rag_chain, retrieval_grader, question_rewriter, web_search_tool, question_router, hallucination_grader, answer_grader
+from fastapi import Request
 
 from typing import List
 from typing_extensions import TypedDict
+import os
+os.environ['USER_AGENT'] = 'myagent'
 
 
 class GraphState(TypedDict):
@@ -15,15 +18,17 @@ class GraphState(TypedDict):
         question: question
         generation: LLM generation
         documents: list of documents
+        request: FastAPI request object
     """
     question: str
     generation: str
     documents: List[str]
+    request: Request
 
 
 def retrieve(state):
     """
-    Retrieve documents
+    Retrieve documents using vectorstore from app state
 
     Args:
         state (dict): The current graph state
@@ -33,10 +38,17 @@ def retrieve(state):
     """
     print("---RETRIEVE---")
     question = state['question']
+    request = state['request']  # Get request from state
 
-    # Retrieval
+    # Get vectorstore from app state
+    vectorstore = request.app.state.vectorstore
+    if vectorstore is None:
+        raise ValueError("Vectorstore not initialized in app state")
+
+    retriever = vectorstore.as_retriever()
     documents = retriever.invoke(question)
-    return {"documents": documents, "question": question}
+    # Keep request in state
+    return {"documents": documents, "question": question, "request": request}
 
 
 def generate(state):
@@ -52,11 +64,12 @@ def generate(state):
     print("---GENERATE---")
     question = state['question']
     documents = state['documents']
+    request = state['request']
 
     # RAG generation
     generation = rag_chain.invoke({"context": documents, "question": question})
 
-    return {"generation": generation, "question": question, "documents": documents}
+    return {"generation": generation, "question": question, "documents": documents, "request": request}
 
 
 def grade_documents(state):
@@ -73,6 +86,7 @@ def grade_documents(state):
     print("---CHECK DOCUMENT RELEVANCE TO QUESTION---")
     question = state['question']
     documents = state['documents']
+    request = state['request']
 
     # Score each doc
     filtered_docs = []
@@ -86,7 +100,7 @@ def grade_documents(state):
         else:
             print("---GRADE: DOCUMENT NOT RELEVANT---")
             continue
-    return {"documents": filtered_docs, "question": question}
+    return {"documents": filtered_docs, "question": question, "request": request}
 
 
 def transform_query(state):
@@ -103,11 +117,12 @@ def transform_query(state):
     print("---TRANSFORM QUERY---")
     question = state['question']
     documents = state['documents']
+    request = state['request']
 
     # Re-write question
     better_question = question_rewriter.invoke({"question": question})
 
-    return {"documents": documents, "question": better_question}
+    return {"documents": documents, "question": better_question, "request": request}
 
 
 def web_search(state):
@@ -123,13 +138,14 @@ def web_search(state):
 
     print("---WEB SEARCH---")
     question = state["question"]
+    request = state["request"]
 
     # Web search
     docs = web_search_tool.invoke({"query": question})
     web_results = "\n".join([d["content"] for d in docs])
     web_results = Document(page_content=web_results)
 
-    return {"documents": web_results, "question": question}
+    return {"documents": web_results, "question": question, "request": request}
 
 ### Edges ###
 
@@ -256,12 +272,12 @@ workflow.add_conditional_edges(
     {
         "useful": END,
         "not useful": "transform_query",
-        "not supported": "generate" # Tạo lại
+        "not supported": "generate"  # Tạo lại
     }
 )
 
 # Compile
 graph = workflow.compile()
 
-output_file_path="/home/minhthuy/Desktop/physcode/api_chatbot_research/app/modules/chat/graph.png"
-graph.get_graph().draw_mermaid_png(output_file_path=output_file_path)
+# output_file_path="/home/minhthuy/Desktop/physcode/api_chatbot_research/app/modules/chat/graph.png"
+# graph.get_graph().draw_mermaid_png(output_file_path=output_file_path)

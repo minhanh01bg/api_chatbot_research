@@ -6,9 +6,11 @@ from configs import configs
 app = FastAPI()
 
 # MongoDB
-MONGODB_URL = configs.MONGO_URL 
+MONGODB_URL = configs.MONGO_URL
 client = AsyncIOMotorClient(MONGODB_URL)
-db = client["token"] 
+db = client["chatbot_research"]
+
+
 async def get_db():
     yield db
 
@@ -16,6 +18,5 @@ async def get_db():
 users_collection = db["users"]
 tokens_collection = db["tokens"]
 permanent_tokens_collection = db["permanentTokens"]
-
-# 
 models_collection = db['aiModels']
+documents_collection = db['documents']

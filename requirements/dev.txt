@@ -12,9 +12,6 @@ langchain-core==0.3.28
 langchain-openai==0.2.14
 langchain-text-splitters==0.3.4
 langchainhub==0.1.21
-langgraph
-langgraph-checkpoint==2.0.9
-langgraph-sdk==0.1.48
 langserve==0.3.0
 langsmith==0.1.147
 pymongo
@@ -29,3 +26,6 @@ pydantic==2.10.4
 langchain-google-genai
 langgraph==0.2.73
 beautifulsoup4
+unstructured
+python-docx 
+docx2txt

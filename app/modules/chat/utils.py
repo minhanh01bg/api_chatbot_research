@@ -24,10 +24,10 @@ from langgraph.graph import StateGraph, START, END, MessagesState
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import tools_condition, create_react_agent
 from langgraph.types import Command
-
-openai_llm = ChatOpenAI(model="gpt-4o-mini",api_key=configs.OPENAI_API_KEY)
+# ChatOpenAI.model_rebuild()
+openai_llm = ChatOpenAI(model="gpt-4o-mini", api_key=configs.OPENAI_API_KEY)
 openai_embeddings_model = OpenAIEmbeddings(
-            model="text-embedding-3-small", api_key=configs.OPENAI_API_KEY)
+    model="text-embedding-3-small", api_key=configs.OPENAI_API_KEY)
 
 google_embeddings_model = GoogleGenerativeAIEmbeddings(
     model="models/gemini-embedding-exp-03-07", google_api_key=configs.GOOGLE_API_KEY)  # gemini-embedding-exp-03-07, text-embedding-004, embedding-001

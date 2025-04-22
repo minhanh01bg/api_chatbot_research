@@ -5,7 +5,8 @@ from modules.chat.chatbot import rag_chain, retrieval_grader, question_rewriter,
 
 from typing import List
 from typing_extensions import TypedDict
-
+import os
+os.environ['USER_AGENT'] = 'myagent'
 
 class GraphState(TypedDict):
     """
@@ -263,5 +264,5 @@ workflow.add_conditional_edges(
 # Compile
 graph = workflow.compile()
 
-output_file_path="/home/minhthuy/Desktop/physcode/api_chatbot_research/app/modules/chat/graph.png"
-graph.get_graph().draw_mermaid_png(output_file_path=output_file_path)
+# output_file_path="/home/minhthuy/Desktop/physcode/api_chatbot_research/app/modules/chat/graph.png"
+# graph.get_graph().draw_mermaid_png(output_file_path=output_file_path)

@@ -19,11 +19,13 @@ urls = [
     "https://lilianweng.github.io/posts/2023-06-23-agent/",
     "https://lilianweng.github.io/posts/2023-03-15-prompt-engineering/",
     "https://lilianweng.github.io/posts/2023-10-25-adv-attack-llm/",
+    # "https://cellphones.com.vn/man-hinh-gaming-viewsonic-vx2758a-2k-pro-2-27-inch-185hz.html"
 ]
 
 # Load
 docs = [WebBaseLoader(url).load() for url in urls]
 docs_list = [item for sublist in docs for item in sublist]
+# print(docs[3])
 
 # Split
 text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(

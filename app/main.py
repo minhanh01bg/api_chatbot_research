@@ -7,6 +7,8 @@ from auth import models
 from database import users_collection, tokens_collection
 from auth.routes import auth
 from modules.chat.routes import chat
+from modules.document.routes import document
+from modules.document.utils import initialize_vectorstore
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -33,7 +35,7 @@ app.add_middleware(
 app.mount(f"/alembic", StaticFiles(directory="alembic"), name="alembic")
 app.include_router(chat, prefix=configs.ROUTER, tags=['Chat'])
 app.include_router(auth, prefix=configs.ROUTER, tags=['Auth'])
-
+app.include_router(document, prefix=configs.ROUTER, tags=['Document'])
 
 
 async def create_superuser(username=None, password=None, is_active=True, is_admin=True, user_id=None):
@@ -80,7 +82,6 @@ async def create_superuser(username=None, password=None, is_active=True, is_admi
         print(f"✅ Superuser '{username}' already exists in MongoDB!")
 
 
-
 @app.on_event("startup")
 async def startup_event():
     await create_superuser(
@@ -90,6 +91,7 @@ async def startup_event():
         is_admin=configs.toml_settings['superuser']['is_admin'],
         user_id=configs.toml_settings['superuser']['id']
     )
+    await initialize_vectorstore()
 
 
 @app.exception_handler(AppBaseException)

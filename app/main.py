@@ -19,8 +19,15 @@ warnings.filterwarnings('ignore')
 
 # models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI()
+class AppState:
+    """Application state class to store global variables"""
 
+    def __init__(self):
+        self.vectorstore = None
+
+
+app = FastAPI()
+app.state = AppState()
 
 origins = ["*", ]
 
@@ -84,6 +91,7 @@ async def create_superuser(username=None, password=None, is_active=True, is_admi
 
 @app.on_event("startup")
 async def startup_event():
+    # Create superuser
     await create_superuser(
         username=configs.toml_settings['superuser']['username'],
         password=configs.toml_settings['superuser']['password'],
@@ -91,7 +99,10 @@ async def startup_event():
         is_admin=configs.toml_settings['superuser']['is_admin'],
         user_id=configs.toml_settings['superuser']['id']
     )
-    await initialize_vectorstore()
+
+    # Initialize vectorstore and store in app state
+    app.state.vectorstore = await initialize_vectorstore()
+    print(f"✅ Vectorstore initialized and stored in app state")
 
 
 @app.exception_handler(AppBaseException)

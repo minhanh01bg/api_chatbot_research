@@ -1,4 +1,4 @@
-from modules.chat.documents import retriever
+# from modules.chat.documents import retriever
 from typing import Literal
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
@@ -25,7 +25,7 @@ structured_llm_router = llm.with_structured_output(RouteQuery)
 
 # Prompt
 system = """You are an expert at routing a user question to a vectorstore or web search.
-The vectorstore contains documents related to agents, prompt engineering, and adversarial attacks.
+The vectorstore contains documents related to agents, prompt engineering, adversarial attacks and WorldReader (Trợ lý hỗ trợ mua bán sách).
 Use the vectorstore for questions on these topics. Otherwise, use web-search."""
 route_prompt = ChatPromptTemplate.from_messages(
     [
@@ -80,12 +80,12 @@ grade_prompt = ChatPromptTemplate.from_messages(
 
 retrieval_grader = grade_prompt | structured_llm_grader
 # In[]: test
-question = "agent memory"
+# question = "agent memory"
 
-docs = retriever.invoke(question)
-doc_txt = docs[1].page_content
+# docs = retriever.invoke(question)
+# doc_txt = docs[1].page_content
 
-print(retrieval_grader.invoke({"question": question, "document": doc_txt}))
+# print(retrieval_grader.invoke({"question": question, "document": doc_txt}))
 
 # In[] Generate
 from langchain import hub
@@ -106,8 +106,8 @@ def format_docs(docs):
 rag_chain = prompt | llm | StrOutputParser()
 
 # run 
-generation = rag_chain.invoke({"context": docs, "question": question})
-print(generation)
+# generation = rag_chain.invoke({"context": docs, "question": question})
+# print(generation)
 
 # In[] Hallucination Grader
 
@@ -134,7 +134,7 @@ hallucination_prompt = ChatPromptTemplate.from_messages(
 )
 
 hallucination_grader = hallucination_prompt | structured_llm_grader
-print(hallucination_grader.invoke({"documents": docs, "generation": generation}))
+# print(hallucination_grader.invoke({"documents": docs, "generation": generation}))
 
 # In[]: Answer Grader
 # Data model
@@ -161,7 +161,7 @@ answer_prompt = ChatPromptTemplate.from_messages(
 )
 
 answer_grader = answer_prompt | structured_llm_grader
-print(answer_grader.invoke({"question": question, "generation": generation}))
+# print(answer_grader.invoke({"question": question, "generation": generation}))
 # In[] Question Re-writer
 
 # LLM
@@ -181,7 +181,7 @@ re_write_prompt = ChatPromptTemplate.from_messages(
 )
 
 question_rewriter = re_write_prompt | llm | StrOutputParser()
-print(question_rewriter.invoke({"question": question}))
+# print(question_rewriter.invoke({"question": question}))
 
 # In[] web search tool
 from langchain_community.tools.tavily_search import TavilySearchResults

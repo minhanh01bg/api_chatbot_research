@@ -19,9 +19,6 @@ embeddings = OpenAIEmbeddings(
 # Add new collection for embeddings
 embeddings_collection = db['embeddings']
 
-# Global variable to store loaded embeddings
-loaded_vectorstore = None
-
 
 async def serialize_embeddings(embeddings_data):
     """Convert numpy arrays to lists for MongoDB storage"""
@@ -35,11 +32,6 @@ async def serialize_embeddings(embeddings_data):
 
 async def load_embeddings_from_mongodb():
     """Load embeddings from MongoDB and initialize vectorstore"""
-    global loaded_vectorstore
-
-    if loaded_vectorstore is not None:
-        return loaded_vectorstore
-
     stored_embeddings = await embeddings_collection.find({}).to_list(length=None)
 
     if not stored_embeddings:
@@ -56,13 +48,13 @@ async def load_embeddings_from_mongodb():
         ids.append(str(doc['_id']))
 
     # Initialize FAISS with stored embeddings
-    loaded_vectorstore = FAISS.from_embeddings(
+    vectorstore = FAISS.from_embeddings(
         text_embeddings=text_embeddings,
         embedding=embeddings,
         ids=ids
     )
-
-    return loaded_vectorstore
+    print(f"Size of FAISS: {len(vectorstore.docstore._dict)}")
+    return vectorstore
 
 
 async def process_document(file: UploadFile) -> str:
@@ -102,10 +94,8 @@ async def process_document(file: UploadFile) -> str:
         return splits
 
 
-async def add_to_vectorstore(documents) -> str:
+async def add_to_vectorstore(documents, vectorstore) -> str:
     """Add documents to vectorstore and save embeddings to MongoDB"""
-    global loaded_vectorstore
-
     # Generate embeddings
     texts = [doc.page_content for doc in documents]
     metadata = [doc.metadata for doc in documents]
@@ -126,35 +116,35 @@ async def add_to_vectorstore(documents) -> str:
         embeddings_data.append((text, vector))
 
     # Add to FAISS
-    if loaded_vectorstore is not None:
-        loaded_vectorstore.add_embeddings(
+    if vectorstore is not None:
+        vectorstore.add_embeddings(
             text_embeddings=embeddings_data,
             ids=inserted_ids
         )
     else:
-        loaded_vectorstore = FAISS.from_embeddings(
+        vectorstore = FAISS.from_embeddings(
             text_embeddings=embeddings_data,
             embedding=embeddings,
             ids=inserted_ids
         )
 
+    num_docs = await embeddings_collection.count_documents({})
+    print(f"Num docs in collection: {num_docs}")
+    print(f'ids: ', inserted_ids)
+
+    print(f'Size docs in FAISS: {len(vectorstore.docstore._dict)}')
     return f"faiss_collection_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
 
 
-async def search_documents(query: str, k: int = 4):
+async def search_documents(query: str, vectorstore, k: int = 4):
     """Search documents using loaded vectorstore"""
-    global loaded_vectorstore
-
-    if loaded_vectorstore is None:
-        loaded_vectorstore = await load_embeddings_from_mongodb()
-
-    if loaded_vectorstore is None:
+    if vectorstore is None:
         raise HTTPException(
             status_code=400,
             detail="No documents found in the database"
         )
 
-    results = loaded_vectorstore.similarity_search(query, k=k)
+    results = vectorstore.similarity_search(query, k=k)
     return [{"content": doc.page_content, "metadata": doc.metadata} for doc in results]
 
 
@@ -193,7 +183,7 @@ async def update_document(doc_id: str, update_data: dict):
             status_code=400, detail=f"Error updating document: {str(e)}")
 
 
-async def delete_document(doc_id: str):
+async def delete_document(doc_id: str, vectorstore):
     """Delete document from MongoDB and vectorstore"""
     try:
         # Get document from MongoDB first
@@ -208,9 +198,9 @@ async def delete_document(doc_id: str):
             ).to_list(length=None)
 
             # Delete from FAISS
-            if loaded_vectorstore is not None:
+            if vectorstore is not None:
                 for emb_doc in embedding_docs:
-                    loaded_vectorstore.delete([str(emb_doc['_id'])])
+                    vectorstore.delete([str(emb_doc['_id'])])
 
             # Delete from MongoDB embeddings collection
             await embeddings_collection.delete_many(
@@ -233,7 +223,28 @@ async def list_documents(skip: int = 0, limit: int = 10):
     return documents
 
 
-# Add initialization to the startup event
 async def initialize_vectorstore():
     """Initialize vectorstore on startup"""
-    await load_embeddings_from_mongodb()
+    stored_embeddings = await embeddings_collection.find({}).to_list(length=None)
+
+    if not stored_embeddings:
+        return None
+
+    # Prepare data for FAISS
+    text_embeddings = []
+    ids = []
+
+    for doc in stored_embeddings:
+        text = doc['document']['content']
+        vector = np.array(doc['embedding'])
+        text_embeddings.append((text, vector))
+        ids.append(str(doc['_id']))
+
+    # Initialize FAISS with stored embeddings
+    vectorstore = FAISS.from_embeddings(
+        text_embeddings=text_embeddings,
+        embedding=embeddings,
+        ids=ids
+    )
+    print(f"Size of FAISS: {len(vectorstore.docstore._dict)}")
+    return vectorstore

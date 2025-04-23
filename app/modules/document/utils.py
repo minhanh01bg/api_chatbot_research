@@ -94,7 +94,7 @@ async def process_document(file: UploadFile) -> str:
         return splits
 
 
-async def add_to_vectorstore(documents, vectorstore) -> str:
+async def add_to_vectorstore(documents, vectorstore, document_id: str, request) -> str:
     """Add documents to vectorstore and save embeddings to MongoDB"""
     # Generate embeddings
     texts = [doc.page_content for doc in documents]
@@ -109,6 +109,7 @@ async def add_to_vectorstore(documents, vectorstore) -> str:
         doc_data = {
             "document": {"content": text, "metadata": meta},
             "embedding": vector,
+            "document_id": document_id,  # Add document reference
             "created_at": datetime.utcnow()
         }
         result = await embeddings_collection.insert_one(doc_data)
@@ -127,6 +128,8 @@ async def add_to_vectorstore(documents, vectorstore) -> str:
             embedding=embeddings,
             ids=inserted_ids
         )
+        # Update app state with new vectorstore
+        request.app.state.vectorstore = vectorstore
 
     num_docs = await embeddings_collection.count_documents({})
     print(f"Num docs in collection: {num_docs}")
@@ -183,29 +186,38 @@ async def update_document(doc_id: str, update_data: dict):
             status_code=400, detail=f"Error updating document: {str(e)}")
 
 
-async def delete_document(doc_id: str, vectorstore):
-    """Delete document from MongoDB and vectorstore"""
+async def delete_document(doc_id: str, request):
+    """Delete document and its embeddings"""
     try:
-        # Get document from MongoDB first
+        # Get document from MongoDB
         document = await get_document_by_id(doc_id)
         if document:
             # Delete from MongoDB collections
             await documents_collection.delete_one({"_id": ObjectId(doc_id)})
 
-            # Find and delete embeddings
+            # Find embeddings for this document
             embedding_docs = await embeddings_collection.find(
-                {"document.metadata.source": document["filename"]}
+                {"document_id": doc_id}
             ).to_list(length=None)
+            print(
+                f"Found {len(embedding_docs)} embeddings for document ID {doc_id}")
+            # Get vectorstore from app state
+            vectorstore = request.app.state.vectorstore
+            if vectorstore is not None and embedding_docs:
+                # Delete from FAISS
+                embedding_ids = [str(doc['_id']) for doc in embedding_docs]
+                deleted = vectorstore.delete(ids=embedding_ids)
+                print(f"Deleted {len(embedding_ids)} embeddings from FAISS")
+                if deleted:
+                    print(
+                        f"Deleted {len(embedding_ids)} embeddings from vectorstore")
 
-            # Delete from FAISS
-            if vectorstore is not None:
-                for emb_doc in embedding_docs:
-                    vectorstore.delete([str(emb_doc['_id'])])
+                # Update app state vectorstore
+                request.app.state.vectorstore = vectorstore
 
             # Delete from MongoDB embeddings collection
-            await embeddings_collection.delete_many(
-                {"document.metadata.source": document["filename"]}
-            )
+            await embeddings_collection.delete_many({"document_id": doc_id})
+
             return True
         return False
     except Exception as e:
@@ -221,6 +233,37 @@ async def list_documents(skip: int = 0, limit: int = 10):
         doc["_id"] = str(doc["_id"])
         documents.append(doc)
     return documents
+
+
+async def get_documents(skip: int = 0, limit: int = 10, search: str = None):
+    """Get documents with pagination and optional search"""
+    # Base query
+    query = {}
+
+    # Add search if provided
+    if search:
+        query["$or"] = [
+            {"title": {"$regex": search, "$options": "i"}},
+            {"description": {"$regex": search, "$options": "i"}},
+            {"tags": {"$regex": search, "$options": "i"}}
+        ]
+
+    # Execute query with pagination
+    cursor = documents_collection.find(query).skip(skip).limit(limit)
+    total = await documents_collection.count_documents(query)
+
+    # Get documents
+    documents = []
+    async for doc in cursor:
+        doc["_id"] = str(doc["_id"])
+        documents.append(doc)
+
+    return {
+        "total": total,
+        "documents": documents,
+        "skip": skip,
+        "limit": limit
+    }
 
 
 async def initialize_vectorstore():

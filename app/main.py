@@ -6,7 +6,7 @@ from configs import configs
 from auth import models
 from database import users_collection, tokens_collection
 from auth.routes import auth
-from modules.chat.routes import chat
+from modules.chat.routes import chat_router
 from modules.document.routes import document
 from modules.document.utils import initialize_vectorstore
 from fastapi import FastAPI, Request
@@ -40,7 +40,7 @@ app.add_middleware(
 )
 
 app.mount(f"/alembic", StaticFiles(directory="alembic"), name="alembic")
-app.include_router(chat, prefix=configs.ROUTER, tags=['Chat'])
+app.include_router(chat_router, prefix=configs.ROUTER, tags=['Chat'])
 app.include_router(auth, prefix=configs.ROUTER, tags=['Auth'])
 app.include_router(document, prefix=configs.ROUTER, tags=['Document'])
 

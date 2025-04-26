@@ -85,26 +85,19 @@ async def get_chat_history(
             "session_id": session_id,
             "data": []
         }
-
     messages = [MessageBase(**msg) for msg in session.get("messages", [])]
-    total_records = len(messages)
-
     return {
         "session_id": session_id,
         "data": messages
     }
 
 
-async def delete_session(session_id: str, site_id: str):
+async def delete_session(session_id: str,):
     # Kiểm tra xem session có tồn tại không
-    db_session = await chat_sessions_collection.find_one({"session_id": session_id, "site_id": site_id})
+    db_session = await chat_sessions_collection.find_one({"session_id": session_id,})
     if not db_session:
         raise HTTPException(status_code=404, detail="Session not found")
 
     # Xóa ChatSession
-    await chat_sessions_collection.delete_one({"session_id": session_id, "site_id": site_id})
-
-    # Xóa tất cả ChatHistory liên quan
-    # await chat_histories_collection.delete_many({"session_id": session_id, "site_id": site_id})
-
+    await chat_sessions_collection.delete_one({"session_id": session_id,})
     return {"message": f"Session {session_id} and its histories deleted successfully"}

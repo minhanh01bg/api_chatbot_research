@@ -59,3 +59,13 @@ async def get_chat_history(
     Get chat history for a specific session with pagination
     """
     return await service.get_chat_history(session_id=session_id,)
+
+
+@chat_router.delete('/chat_session/{session_id}', status_code=status.HTTP_200_OK)
+async def delete_session(
+    session_id: str,
+):
+    """
+    Delete a chat session
+    """
+    return await service.delete_session(session_id=session_id)

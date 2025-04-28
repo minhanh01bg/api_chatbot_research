@@ -3,7 +3,7 @@ from .schemas import MessageBase, ChatSession, ChatHistoryResponse, SessionRespo
 from database import chat_sessions_collection
 from datetime import datetime
 from fastapi import Depends, HTTPException, Query, Response
-
+from uuid import uuid4
 async def save_question(
     role: str,
     question: str,
@@ -101,3 +101,16 @@ async def delete_session(session_id: str,):
     # Xóa ChatSession
     await chat_sessions_collection.delete_one({"session_id": session_id,})
     return {"message": f"Session {session_id} and its histories deleted successfully"}
+
+async def create_session(
+) -> ChatSession:
+    session_id = str(uuid4())
+    
+    session = ChatSession(
+        session_id=session_id,
+        created_time=datetime.utcnow(),
+        updated_time=datetime.utcnow(),
+        messages=[]
+    )
+    await chat_sessions_collection.insert_one(session.dict())
+    return session

@@ -17,6 +17,7 @@ async def langgraph_adaptive_rag(data: schemas.Langgraph_adaptive_schema, reques
     })
     return result['generation']
 
+
 def stream_response(data: schemas.Langgraph_adaptive_schema, request: Request, background_tasks: BackgroundTasks):
     """
     Stream response for LangGraph Adaptive RAG
@@ -27,7 +28,9 @@ def stream_response(data: schemas.Langgraph_adaptive_schema, request: Request, b
             answers += message.content
             yield f"{message.content}"
 
-    background_tasks.add_task(service.save_question, "assistant", answers, data.session_id)
+    background_tasks.add_task(service.save_question,
+                              "assistant", answers, data.session_id)
+
 
 @chat_router.post('/chat', status_code=status.HTTP_200_OK)
 async def chat(data: schemas.Langgraph_adaptive_schema, request: Request, background_tasks: BackgroundTasks):
@@ -41,6 +44,7 @@ async def chat(data: schemas.Langgraph_adaptive_schema, request: Request, backgr
         headers={"Content-Type": "text/event-stream"}
     )
 
+
 @chat_router.get('/chat_sessions', status_code=status.HTTP_200_OK)
 async def get_chat_sessions(
     page: int = 1,
@@ -50,6 +54,7 @@ async def get_chat_sessions(
     Get chat sessions with pagination
     """
     return await service.get_sessions(page=page, page_size=page_size)
+
 
 @chat_router.get('/chat_history', status_code=status.HTTP_200_OK)
 async def get_chat_history(
@@ -61,7 +66,7 @@ async def get_chat_history(
     return await service.get_chat_history(session_id=session_id,)
 
 
-@chat_router.delete('/chat_session/{session_id}', status_code=status.HTTP_200_OK)
+@chat_router.delete('/session/{session_id}', status_code=status.HTTP_200_OK)
 async def delete_session(
     session_id: str,
 ):
@@ -69,3 +74,11 @@ async def delete_session(
     Delete a chat session
     """
     return await service.delete_session(session_id=session_id)
+
+
+@chat_router.post('/create_session', status_code=status.HTTP_200_OK)
+async def create_session():
+    """
+    Create a new chat session
+    """
+    return await service.create_session()

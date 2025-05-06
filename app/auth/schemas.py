@@ -2,11 +2,11 @@ from pydantic import BaseModel, Field
 import datetime
 
 class UserBase(BaseModel):
-    username: str
+    email: str
 
 
 class UserCreate(UserBase):
-    username: str
+    email: str
     password: str
 
 class User(UserBase):
@@ -17,7 +17,7 @@ class User(UserBase):
     #     orm_mode = True
 
 class UserLogin(BaseModel):
-    username: str
+    email: str
     password: str
 
 class Token(BaseModel):
@@ -26,13 +26,18 @@ class Token(BaseModel):
     token_type: str
 
 class TokenData(BaseModel):
-    username: str | None
+    email: str | None
 
 class ChangePasswordRequest(BaseModel):
-    username: str
+    email: str
     old_password: str
     new_password: str
 
 class CreateAccessToken(BaseModel):
     token: str
     created_by: str
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str

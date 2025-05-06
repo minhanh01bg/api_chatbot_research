@@ -9,18 +9,18 @@ from fastapi import HTTPException, status
 from database import tokens_collection, users_collection
 
 
-def add_token(db: Session, username: str, access_token: str, expired_at: datetime):
+def add_token(db: Session, email: str, access_token: str, expired_at: datetime):
     db_token = models.Token(access_token=access_token,
-                            username=username, expired_at=expired_at)
+                            email=email, expired_at=expired_at)
     db.add(db_token)
     db.commit()
     db.refresh(db_token)
     return db_token
 
 
-async def update_token(username: str, access_token: str, expired_at: datetime):
+async def update_token(email: str, access_token: str, expired_at: datetime):
     await tokens_collection.update_one(
-        {"username": username},
+        {"email": email},
         {"$set": {
             "access_token": access_token,
             "expired_at": expired_at
@@ -29,12 +29,12 @@ async def update_token(username: str, access_token: str, expired_at: datetime):
     )
 
 
-async def get_token_by_user_id(username: str):
-    return await tokens_collection.find_one({"username": username})
+async def get_token_by_user_id(email: str):
+    return await tokens_collection.find_one({"email": email})
 
 
-async def authenticate_user(username: str, password: str):
-    user = await users_collection.find_one({"username": username})
+async def authenticate_user(email: str, password: str):
+    user = await users_collection.find_one({"email": email})
     
     if not user:
         raise HTTPException(
@@ -51,30 +51,30 @@ async def authenticate_user(username: str, password: str):
     return user
 
 
-async def login_for_access_token(username: str, password: str):
-    user = await authenticate_user(username, password)
+async def login_for_access_token(email: str, password: str):
+    user = await authenticate_user(email, password)
     if not user:
         return None
 
     # check token expired
-    token = await get_token_by_user_id(username)
+    token = await get_token_by_user_id(email)
     
     if token and token["expired_at"] >= datetime.utcnow():
         access_token = token["access_token"]
     else:
-        access_token, to_encode = await create_access_token(data={"sub": username})
+        access_token, to_encode = await create_access_token(data={"sub": email})
         expiration_date = datetime.fromtimestamp(to_encode.get("exp"))
 
         if token:
             # Update token
             await tokens_collection.update_one(
-                {"username": username},
+                {"email": email},
                 {"$set": {"access_token": access_token, "expired_at": expiration_date}}
             )
         else:
             # Add new token
             await tokens_collection.insert_one({
-                "username": username,
+                "email": email,
                 "access_token": access_token,
                 "expired_at": expiration_date
             })

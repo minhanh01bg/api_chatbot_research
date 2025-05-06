@@ -42,13 +42,13 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     
     try:
         payload = jwt.decode(credentials.credentials, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        username: str = payload.get("sub")
+        email: str = payload.get("sub")
         
-        if not username:
+        if not email:
             raise credentials_exception
 
         # Find user MongoDB
-        user = await users_collection.find_one({"username": username})
+        user = await users_collection.find_one({"email": email})
         if not user:
             raise credentials_exception
 

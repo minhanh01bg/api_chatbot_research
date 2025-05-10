@@ -97,7 +97,6 @@ async def startup_event():
         password=configs.toml_settings['superuser']['password'],
         is_active=configs.toml_settings['superuser']['is_activate'],
         is_admin=configs.toml_settings['superuser']['is_admin'],
-        user_id=configs.toml_settings['superuser']['id']
     )
 
     # Initialize vectorstore and store in app state

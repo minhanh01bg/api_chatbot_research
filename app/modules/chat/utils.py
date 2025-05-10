@@ -1,6 +1,5 @@
 # from modules.score.config import Config
 # Config()
-from IPython.display import Image, display
 from configs import configs
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 import numpy as np

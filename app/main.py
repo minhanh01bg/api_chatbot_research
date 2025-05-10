@@ -45,27 +45,25 @@ app.include_router(auth, prefix=configs.ROUTER, tags=['Auth'])
 app.include_router(document, prefix=configs.ROUTER, tags=['Document'])
 
 
-async def create_superuser(username=None, password=None, is_active=True, is_admin=True, user_id=None):
+async def create_superuser(email=None, password=None, is_active=True, is_admin=True, ):
     """
     Tạo một superuser nếu chưa tồn tại.
-    Nếu username và password không được truyền vào, sẽ lấy từ configs.
+    Nếu email và password không được truyền vào, sẽ lấy từ configs.
     """
 
-    username = username
+    email = email
     password = password
     is_active = is_active
     is_admin = is_admin
-    user_id = user_id
 
     # Hash password
     hashed_password = pwd_context.hash(password)
 
-    existing_user = await users_collection.find_one({"username": username})
+    existing_user = await users_collection.find_one({"email": email})
 
     if existing_user is None:
         mongo_user = {
-            "_id": user_id,
-            "username": username,
+            "email": email,
             "hashed_password": hashed_password,
             "is_active": is_active,
             "is_admin": is_admin,
@@ -73,27 +71,26 @@ async def create_superuser(username=None, password=None, is_active=True, is_admi
             "updated_time": datetime.utcnow(),
         }
         await users_collection.insert_one(mongo_user)
-        print(f"✅ Superuser '{username}' created in MongoDB!")
+        print(f"✅ Superuser '{email}' created in MongoDB!")
         # Create token
-        access_token, to_encode = await create_access_token(data={"sub": username})
+        access_token, to_encode = await create_access_token(data={"sub": email})
         expired_at = datetime.fromtimestamp(to_encode.get("exp"))
 
         # Save token MongoDB
         await tokens_collection.insert_one({
-            # "_id": user_id,
             "access_token": access_token,
-            "username": username,
+            "email": email,
             "expired_at": expired_at
         })
     else:
-        print(f"✅ Superuser '{username}' already exists in MongoDB!")
+        print(f"✅ Superuser '{email}' already exists in MongoDB!")
 
 
 @app.on_event("startup")
 async def startup_event():
     # Create superuser
     await create_superuser(
-        username=configs.toml_settings['superuser']['username'],
+        email=configs.toml_settings['superuser']['email'],
         password=configs.toml_settings['superuser']['password'],
         is_active=configs.toml_settings['superuser']['is_activate'],
         is_admin=configs.toml_settings['superuser']['is_admin'],

@@ -15,7 +15,7 @@ from database import users_collection, permanent_tokens_collection
 auth = APIRouter()
 
 
-@auth.post("/login", response_model=schemas.Token, status_code=status.HTTP_200_OK)
+@auth.post("/login",response_model=schemas.Token, status_code=status.HTTP_200_OK)
 async def access_token(data: schemas.LoginRequest):
     output = await login_for_access_token(data.email, data.password)
     

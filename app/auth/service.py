@@ -78,5 +78,5 @@ async def login_for_access_token(email: str, password: str):
                 "access_token": access_token,
                 "expired_at": expiration_date
             })
-
-    return {"access_token": access_token, "token_type": "bearer"}
+    data = {"id": str(user["_id"]),"email": email}
+    return {"access_token": access_token, "token_type": "bearer", "user": data}

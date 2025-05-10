@@ -20,10 +20,15 @@ class UserLogin(BaseModel):
     email: str
     password: str
 
+class UserRespone(BaseModel):
+    id: str
+    email: str
+
 class Token(BaseModel):
     
     access_token: str
     token_type: str
+    user: UserRespone
 
 class TokenData(BaseModel):
     email: str | None

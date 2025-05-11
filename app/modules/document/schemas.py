@@ -15,7 +15,7 @@ class DocumentCreate(DocumentBase):
 class Document(DocumentBase):
     id: str
     vectorstore_id: str
-    filename: str
+    file_name: str
 
 
 class DocumentSearchSchema(BaseModel):

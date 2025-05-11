@@ -19,7 +19,7 @@ async def add_document(
         "title": title,
         "description": description,
         "tags": tags,
-        "filename": file.filename
+        "file_name": file.filename
     }
     document_id = await utils.save_to_mongodb(doc_metadata)
 
